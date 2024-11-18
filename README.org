@@ -118,7 +118,7 @@ details.
 Some background information that can help
 
 + Basic knowledge of what [[https://learn.microsoft.com/en-us/windows/win32/directshow/using-the-video-mixing-renderer][Video Mixing Renderer]] is
-+ An understanding of [[https://www.codeproject.com/Articles/14117/COM-in-plain-C-Part-4][COM objects and lpVtbl in the Windows C world]]
++ An understanding of [[https://devblogs.microsoft.com/oldnewthing/20040205-00/?p=40733][COM objects and lpVtbl in the Windows C world]]
 
 What I noticed when gdb-ing ~wine~, ~dxvk~, and the game is that on [[https://github.com/ValveSoftware/wine/blob/488fb296dda334a1e8555a9dd8f5cbe09be2afe5/dlls/quartz/vmr7.c#L429][vmr_destroy]]
 I would try to call a function pointer that was referring to NULL. What I
@@ -239,26 +239,30 @@ images from the game to illustrate.
 
 ** Some Steam Deck caveats
 
-Right now, with just the above two patches, I have the game workly perfectly for
-me on XMonad on my desktop. I also have the game perfectly working on my Steam
-Deck except I am not running the game the normal way. When in "Game Mode" on the
-Steam Deck, the [[https://github.com/ValveSoftware/gamescope][gamescope]] compositor is used. With gamescope, I see a black
-screen and the window playing the game fails to be presented on the Steam Deck.
-If I switch to "Desktop Mode" on the Steam Deck, the Steam Deck now uses KDE
-Plasma instead of gamescope and the game runs just like on XMonad on my desktop.
-There is one caveat though with Plasma. It has a dock/taskbar at the bottom of
-the screen that by default is always pinned. Because of the "always visible"
-setting, the dock presents itself even with some applications attempting to
-fullscreen. WHITE ALBUM 2 and the dock will fight trying to present on the
-screen, leading to an annoying experience. I change the dock's visibility
-settings so its hidden unless explicitly navigated to, and it does not come up
-at all while playing the game. What I do after this is run Steam in big picture
-mode after switching to KDE Plasma on the Steam Deck and launch White Album 2.
-Luckily setting up gamescope and KDE Plasma on my desktop is trivial for me to
-try to reproduce and debug the issue. I believe the issues here are likely
-issues with the Wayland compositors (or related) rather than Wine or other
-related components in Proton. Debugging on the Steam Deck is annoying unless I
-want to disable the read-only root filesystem and set up an ssh server (I rather
-not). I am interested in debugging both the gamescope and Plasma dock/taskbar
-related issues, but I would like to first finish the game now that I can play it
-on the Steam Deck.
+*UPDATE:* The game seems to be perfectly working in gamescope ("Game Mode") with
+no setting changes, so the below excerpt is no longer relevant. Leaving it just
+in case someone still finds it useful.
+
+Right now, with just the above two patches, I have the game working perfectly
+for me on XMonad on my desktop. I also have the game perfectly working on my
+Steam Deck except I am not running the game the normal way. When in "Game Mode"
+on the Steam Deck, the [[https://github.com/ValveSoftware/gamescope][gamescope]] compositor is used. With gamescope, I see a
+black screen and the window playing the game fails to be presented on the Steam
+Deck. If I switch to "Desktop Mode" on the Steam Deck, the Steam Deck now uses
+KDE Plasma instead of gamescope and the game runs just like on XMonad on my
+desktop. There is one caveat though with Plasma. It has a dock/taskbar at the
+bottom of the screen that by default is always pinned. Because of the "always
+visible" setting, the dock presents itself even with some applications
+attempting to fullscreen. WHITE ALBUM 2 and the dock will fight trying to
+present on the screen, leading to an annoying experience. I change the dock's
+visibility settings so it's hidden unless explicitly navigated to, and it does
+not come up at all while playing the game. What I do after this is run Steam in
+big picture mode after switching to KDE Plasma on the Steam Deck and launch
+White Album 2. Luckily setting up gamescope and KDE Plasma on my desktop is
+trivial for me to try to reproduce and debug the issue. I believe the issues
+here are likely issues with the Wayland compositors (or related) rather than
+Wine or other related components in Proton. Debugging on the Steam Deck is
+annoying unless I want to disable the read-only root filesystem and set up an
+ssh server (I rather not). I am interested in debugging both the gamescope and
+Plasma dock/taskbar related issues, but I would like to first finish the game
+now that I can play it on the Steam Deck.
