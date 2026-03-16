@@ -14,13 +14,16 @@ WA2_DIR=$1
 # due to Windows VFS being case-insensitive and not causing issues for the
 # games. Use find -exec in place of an outer bash loop through the find results
 # to avoid whitespace in file paths from breaking the script logic.
+#
+# Follow Valve's best practices for codecs.
+# https://partner.steamgames.com/doc/steamdeck/proton#4
 find "$WA2_DIR" -type f -iname 'mv*.pak' -exec sh -c '
     for mv_pak; do
         if [ -f "${mv_pak}.old" ]; then
             echo "${mv_pak} already converted to mp4..."
         else
             echo "Converting ${mv_pak} to mp4..."
-            ffmpeg -i "$mv_pak" "${mv_pak}.mp4"
+            ffmpeg -i "$mv_pak" "-c:v" "libsvtav1" "-c:a" "libopus" "${mv_pak}.mp4"
             mv "$mv_pak" "${mv_pak}.old"
             mv "${mv_pak}.mp4" "$mv_pak"
         fi
