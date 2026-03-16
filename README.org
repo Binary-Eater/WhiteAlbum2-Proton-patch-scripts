@@ -237,8 +237,11 @@ provides a test pattern in its place for the duration of the asset. Valve may
 not be able to package the needed gstreamer functionality in its Proton stack,
 but there is nothing stopping ~ffmpeg~ on the Steam Deck since ~ffmpeg~ is not
 being developed by Valve. We can use ffmpeg to convert all of White Album 2's
-movie assets into H.264 encoded mp4 files that Proton's gstreamer packaging will
+movie assets into AV1 encoded mp4 files that Proton's gstreamer packaging will
 have no issues handling.
+
+Valve documents their best practices regarding codecs:
+[[https://partner.steamgames.com/doc/steamdeck/proton#4]].
 
 I packaged a script in this repository to handle converting the movie assets of
 the game.
