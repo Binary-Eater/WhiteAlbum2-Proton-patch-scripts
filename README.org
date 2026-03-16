@@ -150,9 +150,28 @@ that intercepts all d3d9 API calls and then dispatches them to the real
 ~d3d9.dll~ on the system (so DXVK in this case). What I did not realize is that
 in some path for ~IDirect3DDevice9_Release~, this stub dll would call
 ~RtlFreeHeap~ on some part of the COM object that would end up corrupting the
-~lpVtbl~. If I move this dll out of the game's loading path, the game will
-directly use DXVK's ~d3d9.dll~ and the issue is mitigated since the ~lpVtbl~ is
-no longer corrupted.
+~lpVtbl~. +If I move this dll out of the game's loading path, the game will directly use DXVK's ~d3d9.dll~ and the issue is mitigated since the ~lpVtbl~ is no longer corrupted.+
+
+UPDATE: Thanks to a user reporting an [[https://github.com/Binary-Eater/WhiteAlbum2-Proton-patch-scripts/issues/1][issue]], I learned that ~d3d9.dll~ comes
+from the [[https://github.com/TodokanaiTL/subtitles][translation project]]. From debugging the DLL further, I came to realize
+the problem comes from this intercept dll always destroying COM objects on any
+~Release~ call instead of when the reference count of the object drops to zero.
+Microsoft explicitly [[https://learn.microsoft.com/en-us/windows/win32/api/unknwn/nf-unknwn-iunknown-release][documents]] that a COM object should only clean itself up
+when the reference count has dropped to zero. Previously, Direct3DWrapper and
+Direct3DDeviceWrapper would try to free themselves irrespective of the refcount
+of the original instances that they wrap. This is problematic especially with
+DXVK where the instances have a refcount greater than one. Actually, even when
+debugging wine's OpenGL-based D3D9 implementation, the refcount was also greater
+than zero but it seems the memory was not zero-ed, so the lpVtbl for the COM
+object was still in a reliable state for the subsequent Release calls. I have
+published a [[https://github.com/TodokanaiTL/subtitles/pull/1][pull request]] to resolve this upstream in the translation project.
+The dll is actually important since it patches in English subtitles into the
+movie scenes. I did not notice this myself since I can understand Japanese, but
+I am illiterate in the language. Here is an image of dll working with DXVK while
+presenting additional debug information.
+
+#+ATTR_HTML: :width 60%
+[[./images/dll-working-with-dxvk.png]]
 
 My debug session summarized (where you can see the related watchpoint usage and
 tracing):
@@ -168,22 +187,24 @@ Resources that helped me
   - winedbg was useful, but I just hopped back to using native gdb on the unix side
 + Microsoft documentation such as [[https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlfreeheap][RtlFreeHeap]] and [[https://learn.microsoft.com/en-us/windows/win32/api/d3d9helper/nn-d3d9helper-idirect3ddevice9][IDirect3DDevice9]].
 
-Btw, using ~PROTON_USE_WINED3D=1~ does seem to continue playing without crashing
-the game, but that weird ~RtlFreeHeap~ call still occurs from the stubbed
-d3d9.dll vendored with the game, so I would just patch it and still use DXVK.
-
-To patch the White Album 2 installation for resolving this issue, you can simply
-run something along the lines of the following.
+Using ~PROTON_USE_WINED3D=1~ is another possible workaround, but I personally
+prefer to use DXVK whenever possible. To patch the White Album 2 installation
+for resolving this issue, you can simply run something along the lines of the
+following. This script will copy over the fixed dll without the additional debug
+information being presented on the game, that was shown previously in this
+README. However, that dll is provided under ~./dlls/debug/d3d9.dll~ if needed.
 
 #+BEGIN_SRC shell
   ~/Documents/wa2-patch-scripts
-  ❯ ./wa2-proton-dxvk-patch.sh ~/.local/share/wineprefixes/wa2/drive_c/Leaf/WHITE\ ALBUM2/
-  Found WHITE ALBUM 2 d3d9.dll
-  Moved to /home/binary-eater/.local/share/wineprefixes/wa2/drive_c/Leaf/WHITE ALBUM2//d3d9.dll.old...
+  ❯ ./wa2-proton-dxvk-patch.sh ~/.local/share/wineprefixes/wa2/drive_c/Leaf/WHITE\ ALBUM2
+  Found WHITE ALBUM 2 d3d9.dll from the translation project
+  https://github.com/TodokanaiTL/subtitles
 
-  ~/Documents/wa2-patch-scripts 
-  ❯ ./wa2-proton-dxvk-patch.sh ~/.local/share/wineprefixes/wa2/drive_c/Leaf/WHITE\ ALBUM2\ Special\ Contents/
-  Did not find vendored d3d9.dll in path /home/binary-eater/.local/share/wineprefixes/wa2/drive_c/Leaf/WHITE ALBUM2 Special Contents/ 
+  Replacing the d3d9.dll with one including a bugfix for DXVK...
+  https://github.com/TodokanaiTL/subtitles/pull/1
+  https://github.com/Binary-Eater/WA2-subtitles/commit/a2950e82bd2048ff92120b90cbdb4831eee5db7b
+  https://github.com/TodokanaiTL/subtitles/pull/2
+  https://github.com/Binary-Eater/WA2-subtitles/commit/b4e43a8068c612d008b1043602e3fe089e18986a
 #+END_SRC
 
 ** White Album 2's use of Microsoft Advanced Streaming Format (ASF) (video/x-ms-asf)
